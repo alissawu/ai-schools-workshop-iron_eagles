@@ -35,6 +35,9 @@ function renderApp() {
 describe('App', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // Default return for prefetch calls so they don't warn about undefined
+    vi.mocked(api.fetchDistricts).mockResolvedValue([]);
+    vi.mocked(api.fetchDemographics).mockResolvedValue(null);
   });
 
   it('should render the header', () => {

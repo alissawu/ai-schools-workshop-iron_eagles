@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { StateSelector } from './components/StateSelector';
 import { DistrictList } from './components/DistrictList';
 import { DistrictDetail } from './components/DistrictDetail';
 import type { District } from './api';
+import { fetchDistricts } from './api';
+
+const TOP_STATE_FIPS = [6, 48, 36, 12, 34]; // CA, TX, NY, FL, NJ
 
 function createQueryClient() {
   return new QueryClient({
@@ -19,9 +22,20 @@ function createQueryClient() {
 const defaultQueryClient = createQueryClient();
 
 function AppContent() {
+  const queryClient = useQueryClient();
   const [selectedState, setSelectedState] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Prefetch top 5 states on mount
+  useEffect(() => {
+    TOP_STATE_FIPS.forEach((fips) => {
+      queryClient.prefetchQuery({
+        queryKey: ['districts', String(fips)],
+        queryFn: () => fetchDistricts(fips),
+      });
+    });
+  }, [queryClient]);
 
   const handleBack = () => {
     setSelectedDistrict(null);
