@@ -5,14 +5,18 @@ import { DistrictList } from './components/DistrictList';
 import { DistrictDetail } from './components/DistrictDetail';
 import type { District } from './api';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 2,
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        retry: 2,
+      },
     },
-  },
-});
+  });
+}
+
+const defaultQueryClient = createQueryClient();
 
 function AppContent() {
   const [selectedState, setSelectedState] = useState<string>('');
@@ -122,12 +126,17 @@ function AppContent() {
   );
 }
 
-function App() {
+interface AppProps {
+  queryClient?: QueryClient;
+}
+
+function App({ queryClient }: AppProps) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient || defaultQueryClient}>
       <AppContent />
     </QueryClientProvider>
   );
 }
 
+export { createQueryClient };
 export default App;

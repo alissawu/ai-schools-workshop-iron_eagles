@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient } from '@tanstack/react-query';
 import App from '../App';
 import * as api from '../api';
 
@@ -11,8 +12,25 @@ vi.mock('../api', async () => {
     fetchDistricts: vi.fn(),
     fetchSchoolsInDistrict: vi.fn(),
     fetchDistrictFinance: vi.fn(),
+    fetchDemographics: vi.fn(),
   };
 });
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  });
+}
+
+function renderApp() {
+  const qc = createTestQueryClient();
+  return render(<App queryClient={qc} />);
+}
 
 describe('App', () => {
   beforeEach(() => {
@@ -20,21 +38,21 @@ describe('App', () => {
   });
 
   it('should render the header', () => {
-    render(<App />);
+    renderApp();
     
     expect(screen.getByText('School District Explorer')).toBeInTheDocument();
     expect(screen.getByText(/Evaluate K-12 school districts/)).toBeInTheDocument();
   });
 
   it('should render the state selector', () => {
-    render(<App />);
+    renderApp();
     
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(screen.getByText('Select a state...')).toBeInTheDocument();
   });
 
   it('should show intro message when no state selected', () => {
-    render(<App />);
+    renderApp();
     
     expect(screen.getByText('Select a State to Begin')).toBeInTheDocument();
   });
@@ -42,7 +60,7 @@ describe('App', () => {
   it('should show search input when state is selected', async () => {
     vi.mocked(api.fetchDistricts).mockResolvedValue([]);
 
-    render(<App />);
+    renderApp();
     
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
@@ -52,7 +70,7 @@ describe('App', () => {
   });
 
   it('should render the footer', () => {
-    render(<App />);
+    renderApp();
     
     expect(screen.getByText(/Urban Institute Education Data Portal/)).toBeInTheDocument();
   });
@@ -62,7 +80,7 @@ describe('App', () => {
       () => new Promise(() => {}) // Never resolves
     );
 
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
     await waitFor(() => {
@@ -93,7 +111,7 @@ describe('App', () => {
 
     vi.mocked(api.fetchDistricts).mockResolvedValue(mockDistricts as api.District[]);
 
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
     await waitFor(() => {
@@ -141,7 +159,7 @@ describe('App', () => {
 
     vi.mocked(api.fetchDistricts).mockResolvedValue(mockDistricts as api.District[]);
 
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
     await waitFor(() => {
@@ -207,8 +225,9 @@ describe('App', () => {
 
     vi.mocked(api.fetchDistricts).mockResolvedValue(mockDistricts as api.District[]);
     vi.mocked(api.fetchSchoolsInDistrict).mockResolvedValue(mockSchools as api.School[]);
+    vi.mocked(api.fetchDemographics).mockResolvedValue(null);
 
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
     await waitFor(() => {
@@ -246,8 +265,9 @@ describe('App', () => {
 
     vi.mocked(api.fetchDistricts).mockResolvedValue(mockDistricts as api.District[]);
     vi.mocked(api.fetchSchoolsInDistrict).mockResolvedValue([]);
+    vi.mocked(api.fetchDemographics).mockResolvedValue(null);
 
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '6' } });
     
     await waitFor(() => {

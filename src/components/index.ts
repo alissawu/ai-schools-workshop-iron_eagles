@@ -3,5 +3,7 @@ export { DistrictList } from './DistrictList';
 export { DistrictCard } from './DistrictCard';
 export { DistrictDetail } from './DistrictDetail';
 export { SchoolCard } from './SchoolCard';
+export { SchoolModal } from './SchoolModal';
+export { DemographicsChart } from './DemographicsChart';
 export { LoadingSpinner } from './LoadingSpinner';
 export { MetricBar } from './MetricBar';

@@ -158,3 +158,72 @@ export function calculateFRLPercent(frl: number | null, enrollment: number | nul
   if (frl === null || !enrollment || enrollment === 0) return null;
   return Math.round((frl / enrollment) * 100);
 }
+
+// Race code mapping from CCD
+export const RACE_LABELS: Record<number, string> = {
+  1: 'White',
+  2: 'Black',
+  3: 'Hispanic',
+  4: 'Asian',
+  5: 'American Indian/Alaska Native',
+  6: 'Native Hawaiian/Pacific Islander',
+  7: 'Two or More Races',
+  9: 'Unknown',
+  99: 'Total',
+};
+
+export const RACE_COLORS: Record<number, string> = {
+  1: '#6366f1', // indigo
+  2: '#f59e0b', // amber
+  3: '#ef4444', // red
+  4: '#10b981', // emerald
+  5: '#8b5cf6', // violet
+  6: '#06b6d4', // cyan
+  7: '#f97316', // orange
+  9: '#94a3b8', // slate
+};
+
+export interface DemographicEntry {
+  race: number;
+  sex: number;
+  enrollment: number | null;
+  leaid: string;
+  year: number;
+  fips: number;
+  grade: number;
+}
+
+export interface DemographicBreakdown {
+  label: string;
+  race: number;
+  enrollment: number;
+  percent: number;
+  color: string;
+}
+
+export async function fetchDemographics(leaid: string): Promise<DemographicBreakdown[] | null> {
+  const url = `${BASE_URL}/school-districts/ccd/enrollment/${YEAR}/race/?leaid=${leaid}&grade=99`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const results: DemographicEntry[] = data.results || [];
+
+  // Filter to total across sex (sex=99) and exclude total race (99)
+  const raceRows = results.filter(
+    (r) => r.sex === 99 && r.race !== 99 && r.enrollment && r.enrollment > 0
+  );
+
+  if (raceRows.length === 0) return null;
+
+  const totalEnrollment = raceRows.reduce((sum, r) => sum + (r.enrollment || 0), 0);
+  if (totalEnrollment === 0) return null;
+
+  return raceRows
+    .map((r) => ({
+      label: RACE_LABELS[r.race] || `Race ${r.race}`,
+      race: r.race,
+      enrollment: r.enrollment!,
+      percent: Math.round((r.enrollment! / totalEnrollment) * 1000) / 10,
+      color: RACE_COLORS[r.race] || '#94a3b8',
+    }))
+    .sort((a, b) => b.enrollment - a.enrollment);
+}

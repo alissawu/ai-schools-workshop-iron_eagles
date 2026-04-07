@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { District, School } from '../api';
 import {
   fetchSchoolsInDistrict,
+  fetchDemographics,
   calculateStudentTeacherRatio,
   getSchoolLevelLabel,
 } from '../api';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SchoolCard } from './SchoolCard';
+import { SchoolModal } from './SchoolModal';
+import { DemographicsChart } from './DemographicsChart';
 import { MetricBar } from './MetricBar';
 
 interface DistrictDetailProps {
@@ -15,9 +19,16 @@ interface DistrictDetailProps {
 }
 
 export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+
   const { data: schools, isLoading } = useQuery({
     queryKey: ['schools', district.leaid],
     queryFn: () => fetchSchoolsInDistrict(district.leaid),
+  });
+
+  const { data: demographics } = useQuery({
+    queryKey: ['demographics', district.leaid],
+    queryFn: () => fetchDemographics(district.leaid),
   });
 
   const ratio = calculateStudentTeacherRatio(district.enrollment, district.teachers_total_fte);
@@ -83,7 +94,7 @@ export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
         </div>
       </div>
 
-      {/* Metrics Visualization */}
+      {/* Metrics Visualization + Demographics */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="stat-card">
           <h3 className="font-semibold mb-4">Student:Teacher Ratio</h3>
@@ -111,6 +122,13 @@ export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
           </p>
         </div>
       </div>
+
+      {/* Demographics */}
+      {demographics && (
+        <div className="mb-8">
+          <DemographicsChart demographics={demographics} />
+        </div>
+      )}
 
       {/* Schools Section */}
       <div>
@@ -151,7 +169,11 @@ export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
                     {levelSchools
                       .sort((a, b) => (b.enrollment || 0) - (a.enrollment || 0))
                       .map((school) => (
-                        <SchoolCard key={school.ncessch} school={school} />
+                        <SchoolCard
+                          key={school.ncessch}
+                          school={school}
+                          onClick={() => setSelectedSchool(school)}
+                        />
                       ))}
                   </div>
                 </div>
@@ -160,6 +182,14 @@ export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
           </div>
         )}
       </div>
+
+      {/* School Modal */}
+      {selectedSchool && (
+        <SchoolModal
+          school={selectedSchool}
+          onClose={() => setSelectedSchool(null)}
+        />
+      )}
     </div>
   );
 }
