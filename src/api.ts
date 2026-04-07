@@ -112,8 +112,9 @@ export async function fetchDistricts(fips: number): Promise<District[]> {
   const res = await fetch(url);
   const data = await res.json();
   // Filter to only regular school districts (agency_type 1) with enrollment > 0
+  // agency_type 1 = regular districts, 2 = component districts (e.g. NYC Geographic Districts)
   return data.results.filter((d: District) => 
-    d.agency_type === 1 && d.enrollment && d.enrollment > 0
+    (d.agency_type === 1 || d.agency_type === 2) && d.enrollment && d.enrollment > 0
   );
 }
 
