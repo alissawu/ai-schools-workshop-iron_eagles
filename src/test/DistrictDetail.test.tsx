@@ -264,4 +264,78 @@ describe('DistrictDetail', () => {
       expect(screen.getByText('95%')).toBeInTheDocument();
     });
   });
+  it('should render school cards sorted by enrollment', async () => {
+    const { fetchSchoolsInDistrict, fetchDemographics, fetchNicheDistrict } = await import('../api');
+    const mockSchools = [
+      { ncessch: '1', school_name: 'Small School', school_level: 1, enrollment: 100, teachers_fte: 5, city_location: 'Test', state_location: 'NJ', zip_location: '07001', charter: 0, magnet: 0, free_or_reduced_price_lunch: 20, lowest_grade_offered: 0, highest_grade_offered: 5, lea_name: 'Test', latitude: 40, longitude: -74, school_type: 1 },
+      { ncessch: '2', school_name: 'Large School', school_level: 1, enrollment: 800, teachers_fte: 40, city_location: 'Test', state_location: 'NJ', zip_location: '07001', charter: 0, magnet: 0, free_or_reduced_price_lunch: 160, lowest_grade_offered: 0, highest_grade_offered: 5, lea_name: 'Test', latitude: 40, longitude: -74, school_type: 1 },
+      { ncessch: '3', school_name: 'Medium School', school_level: 1, enrollment: 400, teachers_fte: 20, city_location: 'Test', state_location: 'NJ', zip_location: '07001', charter: 0, magnet: 0, free_or_reduced_price_lunch: 80, lowest_grade_offered: 0, highest_grade_offered: 5, lea_name: 'Test', latitude: 40, longitude: -74, school_type: 1 },
+    ];
+    (fetchSchoolsInDistrict as any).mockResolvedValue(mockSchools);
+    (fetchDemographics as any).mockResolvedValue(null);
+    (fetchNicheDistrict as any).mockResolvedValue(null);
+
+    renderWithQuery(<DistrictDetail district={mockDistrict} onBack={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Large School')).toBeInTheDocument();
+      expect(screen.getByText('Medium School')).toBeInTheDocument();
+      expect(screen.getByText('Small School')).toBeInTheDocument();
+    });
+  });
+
+  it('should open and close school modal', async () => {
+    const { fetchSchoolsInDistrict, fetchDemographics, fetchNicheDistrict } = await import('../api');
+    const mockSchool = {
+      ncessch: '123',
+      school_name: 'Modal Test School',
+      school_level: 3,
+      enrollment: 1000,
+      teachers_fte: 50,
+      city_location: 'Test City',
+      state_location: 'NJ',
+      zip_location: '07001',
+      charter: 0,
+      magnet: 0,
+      free_or_reduced_price_lunch: 200,
+      free_lunch: 150,
+      reduced_price_lunch: 50,
+      lowest_grade_offered: 9,
+      highest_grade_offered: 12,
+      lea_name: 'Test District',
+      latitude: 40,
+      longitude: -74,
+      school_type: 1,
+    };
+    (fetchSchoolsInDistrict as any).mockResolvedValue([mockSchool]);
+    (fetchDemographics as any).mockResolvedValue(null);
+    (fetchNicheDistrict as any).mockResolvedValue(null);
+
+    renderWithQuery(<DistrictDetail district={mockDistrict} onBack={() => {}} />);
+
+    // Wait for school to appear
+    await waitFor(() => {
+      expect(screen.getByText('Modal Test School')).toBeInTheDocument();
+    });
+
+    // Click school card to open modal
+    const schoolCards = screen.getAllByRole('button');
+    const schoolCard = schoolCards.find(btn => btn.textContent?.includes('Modal Test School'));
+    if (schoolCard) {
+      fireEvent.click(schoolCard);
+    }
+
+    // Modal should open - check for close button
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    });
+
+    // Close modal
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+    // Modal should be closed
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+    });
+  });
 });

@@ -340,3 +340,30 @@ describe('API Functions', () => {
       expect(result![0].label).toBe('Race 999');
     });
   });
+
+  describe('Niche API error handling', () => {
+    it('fetchNicheDistrict should catch fetch errors', async () => {
+      // Mock health check to pass, then fetch to throw
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true })
+        .mockImplementationOnce(() => { throw new Error('Network failed'); });
+      
+      vi.resetModules();
+      const { fetchNicheDistrict } = await import('../api');
+      const result = await fetchNicheDistrict('Test', 'CA');
+      
+      expect(result).toBeNull();
+    });
+
+    it('fetchNicheSchool should catch fetch errors', async () => {
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true })
+        .mockImplementationOnce(() => { throw new Error('Network failed'); });
+      
+      vi.resetModules();
+      const { fetchNicheSchool } = await import('../api');
+      const result = await fetchNicheSchool('Test School', 'City', 'CA');
+      
+      expect(result).toBeNull();
+    });
+  });

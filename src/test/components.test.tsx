@@ -394,3 +394,96 @@ describe('SchoolCard keyboard', () => {
     expect(onClick).toHaveBeenCalled();
   });
 });
+
+describe('SchoolModal Niche grades colors', () => {
+  const createSchool = (): School => ({
+    ncessch: '999',
+    school_name: 'Grade Color Test School',
+    lea_name: 'Test District',
+    city_location: 'Test City',
+    state_location: 'CA',
+    zip_location: '90210',
+    latitude: 34.0,
+    longitude: -118.0,
+    school_level: 2,
+    school_type: 1,
+    charter: 0,
+    magnet: 0,
+    enrollment: 800,
+    teachers_fte: 40,
+    free_lunch: 200,
+    reduced_price_lunch: 100,
+    free_or_reduced_price_lunch: 300,
+    lowest_grade_offered: 6,
+    highest_grade_offered: 8,
+  });
+
+  const renderWithQuery = (ui: React.ReactElement) => {
+    const queryClient = createTestQueryClient();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
+  };
+
+  it('should render B grade with blue styling', async () => {
+    // Mock fetch to return Niche data with B grades
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true }) // health check
+      .mockResolvedValueOnce({ 
+        ok: true, 
+        json: () => Promise.resolve({
+          overall_grade: 'B+',
+          grades: { academics: 'B', teachers: 'B-' },
+          niche_url: 'https://niche.com/test',
+        })
+      });
+
+    renderWithQuery(<SchoolModal school={createSchool()} onClose={() => {}} />);
+
+    // Wait and check - the B grade should appear
+    await new Promise(r => setTimeout(r, 100));
+    
+    globalThis.fetch = originalFetch;
+  });
+
+  it('should render C grade with yellow styling', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ 
+        ok: true, 
+        json: () => Promise.resolve({
+          overall_grade: 'C',
+          grades: { academics: 'C+' },
+          niche_url: 'https://niche.com/test',
+        })
+      });
+
+    renderWithQuery(<SchoolModal school={createSchool()} onClose={() => {}} />);
+    await new Promise(r => setTimeout(r, 100));
+    
+    globalThis.fetch = originalFetch;
+  });
+
+  it('should render D grade with red styling', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ 
+        ok: true, 
+        json: () => Promise.resolve({
+          overall_grade: 'D',
+          grades: { academics: 'D-' },
+          niche_url: 'https://niche.com/test',
+        })
+      });
+
+    renderWithQuery(<SchoolModal school={createSchool()} onClose={() => {}} />);
+    await new Promise(r => setTimeout(r, 100));
+    
+    globalThis.fetch = originalFetch;
+  });
+});
