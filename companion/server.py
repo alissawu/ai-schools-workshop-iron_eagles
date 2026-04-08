@@ -276,6 +276,9 @@ def extract_preloaded_state(html: str) -> dict | None:
             if depth == 0:
                 # Found the matching brace
                 json_str = html[start:i+1]
+                # Fix JavaScript values that aren't valid JSON
+                json_str = json_str.replace(':undefined', ':null')
+                json_str = json_str.replace(': undefined', ': null')
                 try:
                     return json.loads(json_str)
                 except json.JSONDecodeError as e:
