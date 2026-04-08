@@ -23,7 +23,16 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from patchright.async_api import async_playwright, Browser, Playwright
+
+# Use patchright (stealth patches) - make sure it's not shadowed by playwright
+try:
+    import patchright
+    from patchright.async_api import async_playwright, Browser, Playwright
+    _BROWSER_LIB = f"patchright {patchright.__version__}"
+except ImportError:
+    # Fallback to regular playwright (will likely get blocked)
+    from playwright.async_api import async_playwright, Browser, Playwright
+    _BROWSER_LIB = "playwright (fallback - may get blocked)"
 
 # ---------------------------------------------------------------------------
 # Config
@@ -61,7 +70,7 @@ async def lifespan(app: FastAPI):
             "--no-sandbox",
         ],
     )
-    log.info("Browser launched")
+    log.info(f"Browser launched using {_BROWSER_LIB}")
     yield
     if _browser:
         await _browser.close()
@@ -248,6 +257,8 @@ async def fetch_niche_page(url: str) -> dict | None:
             "Chrome/131.0.0.0 Safari/537.36"
         ),
         viewport={"width": 1280, "height": 800},
+        locale="en-US",
+        timezone_id="America/New_York",
     )
     page = await ctx.new_page()
 
@@ -256,11 +267,13 @@ async def fetch_niche_page(url: str) -> dict | None:
         if resp and resp.status == 404:
             return None
 
+        # Wait a moment for any challenge to resolve
+        await asyncio.sleep(1)
         html = await page.content()
 
         # Check for captcha / block page
         title = await page.title()
-        if "denied" in title.lower() or "perimeterx" in html.lower():
+        if "denied" in title.lower() or "perimeterx" in html.lower() or "access to this page" in html.lower():
             log.warning("PerimeterX block detected for %s", url)
             return None
 
