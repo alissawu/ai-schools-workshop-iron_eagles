@@ -147,10 +147,9 @@ def district_slug_variants(name: str, state: str) -> list[str]:
     st = state.lower().strip()
     base = slugify(name)
 
-    variants = [base]
+    variants = []
 
-    # Suffix-based replacements. We match against the END of the slug
-    # (before state) to avoid partial-match chaos. Longer patterns first.
+    # Suffix-based replacements - try these FIRST since Niche often uses different naming than NCES
     suffix_swaps = [
         ("public-school-district", ["public-schools"]),
         ("city-school-district", ["public-school-district", "public-schools"]),
@@ -158,8 +157,8 @@ def district_slug_variants(name: str, state: str) -> list[str]:
         ("county-schools", ["county-public-schools"]),
         ("independent-school-district", ["isd"]),
         ("unified-school-district", ["unified"]),
-        ("school-district", ["public-schools", "public-school-district"]),
-        ("public-schools", ["school-district", "public-school-district"]),
+        ("school-district", ["public-school-district", "public-schools"]),
+        ("public-schools", ["public-school-district", "school-district"]),
         ("isd", ["independent-school-district"]),
         ("unified", ["unified-school-district"]),
     ]
@@ -176,8 +175,11 @@ def district_slug_variants(name: str, state: str) -> list[str]:
         if base_no_num.endswith(suffix):
             prefix = base_no_num[: -len(suffix)]
             for rep in replacements_list:
-                variants.append(prefix + rep)  # without trailing number
-            break  # only apply first matching suffix rule
+                variants.append(prefix + rep)  # try replacements first
+            break
+    
+    # Then try base name as fallback
+    variants.append(base)
 
     # Try stripping trailing qualifiers like "district 299"
     stripped = re.sub(r"-(?:district|dist)-?\d+$", "", base)
