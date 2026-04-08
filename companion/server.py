@@ -152,13 +152,13 @@ def district_slug_variants(name: str, state: str) -> list[str]:
     # (before state) to avoid partial-match chaos. Longer patterns first.
     suffix_swaps = [
         ("public-school-district", ["public-schools"]),
-        ("city-school-district", ["public-schools"]),
+        ("city-school-district", ["public-school-district", "public-schools"]),
         ("county-school-district", ["county-public-schools"]),
         ("county-schools", ["county-public-schools"]),
         ("independent-school-district", ["isd"]),
         ("unified-school-district", ["unified"]),
-        ("school-district", ["public-schools"]),
-        ("public-schools", ["school-district"]),
+        ("school-district", ["public-schools", "public-school-district"]),
+        ("public-schools", ["school-district", "public-school-district"]),
         ("isd", ["independent-school-district"]),
         ("unified", ["unified-school-district"]),
     ]
