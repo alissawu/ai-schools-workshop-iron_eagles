@@ -238,10 +238,48 @@ def school_slug_variants(name: str, city: str, state: str) -> list[str]:
 # Browser fetch + parse
 # ---------------------------------------------------------------------------
 
-_PRELOADED_RE = re.compile(
-    r"window\.__PRELOADED_STATE__\s*=\s*(\{.+?\})\s*;\s*(?:</script>|$)",
-    re.DOTALL,
-)
+def extract_preloaded_state(html: str) -> dict | None:
+    """Extract __PRELOADED_STATE__ JSON from HTML, handling nested braces properly."""
+    marker = "window.__PRELOADED_STATE__"
+    idx = html.find(marker)
+    if idx == -1:
+        return None
+    
+    # Find the opening brace
+    start = html.find("{", idx)
+    if start == -1:
+        return None
+    
+    # Count braces to find matching close
+    depth = 0
+    in_string = False
+    escape = False
+    
+    for i, c in enumerate(html[start:], start):
+        if escape:
+            escape = False
+            continue
+        if c == '\\' and in_string:
+            escape = True
+            continue
+        if c == '"' and not escape:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                # Found the matching brace
+                try:
+                    return json.loads(html[start:i+1])
+                except json.JSONDecodeError as e:
+                    log.error("JSON parse error: %s", e)
+                    return None
+    
+    return None
 
 
 async def fetch_niche_page(url: str) -> dict | None:
@@ -289,13 +327,13 @@ async def fetch_niche_page(url: str) -> dict | None:
                 pass
             return None
         
-        # Try to find the preloaded state
-        m = _PRELOADED_RE.search(html)
-        if not m:
+        # Try to find and parse the preloaded state
+        state = extract_preloaded_state(html)
+        if not state:
             log.warning("No __PRELOADED_STATE__ found in %s (might be blocked or wrong URL)", url)
             return None
 
-        return json.loads(m.group(1))
+        return state
     except Exception as e:
         log.error("Error fetching %s: %s", url, e)
         return None
