@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+# School District Explorer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive map-based explorer for US school districts. Built with React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Frontend
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Companion Server (Niche Data)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The companion server is a local Python proxy that fetches school/district data from Niche.com using a headless browser. It runs on your machine so requests come from a residential IP (Niche blocks datacenter IPs with PerimeterX).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd companion
+pip install -r requirements.txt
+patchright install chromium
+python server.py
 ```
+
+The server starts on `http://localhost:8080`. The frontend calls it to enrich districts/schools with Niche grades, reviews, and rankings.
+
+#### Endpoints
+
+**`GET /niche/district`** - Fetch district grades and stats from Niche.
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | District name (from NCES data) |
+| `state` | yes | Two-letter state abbreviation |
+| `leaid` | no | NCES LEA ID, used to validate the match |
+
+**`GET /niche/school`** - Fetch school data from Niche.
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | School name |
+| `city` | yes | City name |
+| `state` | yes | Two-letter state abbreviation |
+| `ncessch` | no | NCES school ID, used to validate the match |
+
+**`GET /health`** - Server health check.
+
+#### Example Response
+
+```json
+{
+  "overall_grade": "B+",
+  "grades": {
+    "academics": "B-",
+    "teachers": "B+",
+    "diversity": "A+",
+    "college_prep": "A-",
+    "clubs_and_activities": "B",
+    "administration": "B",
+    "sports": "B-",
+    "food": "C",
+    "resources_and_facilities": "B"
+  },
+  "enrollment": 30124,
+  "student_teacher_ratio": 15.2,
+  "reviews": {
+    "average": 3.41,
+    "count": 127
+  },
+  "rankings": [
+    {"display": "Best School Districts in NC", "ordinal": 42, "total": 115}
+  ],
+  "niche_url": "https://www.niche.com/k12/d/durham-public-schools-nc/",
+  "nces_id": "3701200"
+}
+```
+
+#### How URL Resolution Works
+
+Niche doesn't have a public API, so the server constructs URL slugs from the district/school name and tries to fetch the page. NCES names don't always match Niche's naming (e.g. "Broward County School District" in NCES vs "Broward County Public Schools" on Niche), so the server tries multiple slug variants automatically:
+
+- `durham-public-schools-nc` (exact)
+- `durham-school-district-nc` (swap suffix)
+
+If a `leaid` or `ncessch` is provided, the server validates the match against the NCES ID embedded in Niche's page data.
+
+Results are cached in memory for 1 hour to avoid re-fetching.
+
+## Data Sources
+
+- **NCES** - District boundaries, enrollment, teacher counts, school counts (static JSON in `public/data/districts/`)
+- **Niche** - Grades, reviews, rankings, proficiency stats (fetched live via companion server)

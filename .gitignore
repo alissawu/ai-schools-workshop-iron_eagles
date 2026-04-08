@@ -123,4 +123,4 @@ typings/
 
 ## Jekyll artifacts
 **/.jekyll-cache
-**/_site/
+**/_site/__pycache__/
