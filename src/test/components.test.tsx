@@ -177,3 +177,220 @@ describe('MetricBar', () => {
     expect(screen.getByText('Test Label')).toBeInTheDocument();
   });
 });
+
+import { DemographicsChart } from '../components/DemographicsChart';
+import { SchoolModal } from '../components/SchoolModal';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { DemographicBreakdown } from '../api';
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+describe('DemographicsChart', () => {
+  const mockDemographics: DemographicBreakdown[] = [
+    { label: 'White', race: 1, enrollment: 500, percent: 50, color: '#6366f1' },
+    { label: 'Hispanic', race: 3, enrollment: 300, percent: 30, color: '#ef4444' },
+    { label: 'Black', race: 2, enrollment: 200, percent: 20, color: '#f59e0b' },
+  ];
+
+  it('should render demographics chart', () => {
+    render(<DemographicsChart demographics={mockDemographics} />);
+    
+    expect(screen.getByText('Student Demographics')).toBeInTheDocument();
+    expect(screen.getByText('White')).toBeInTheDocument();
+    expect(screen.getByText('Hispanic')).toBeInTheDocument();
+    expect(screen.getByText('Black')).toBeInTheDocument();
+  });
+
+  it('should show percentages', () => {
+    render(<DemographicsChart demographics={mockDemographics} />);
+    
+    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('30%')).toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
+  });
+
+  it('should render stacked bar segments', () => {
+    const { container } = render(<DemographicsChart demographics={mockDemographics} />);
+    
+    // Should have 3 segments in the bar
+    const segments = container.querySelectorAll('.flex.rounded-lg > div');
+    expect(segments.length).toBe(3);
+  });
+
+  it('should show source citation', () => {
+    render(<DemographicsChart demographics={mockDemographics} />);
+    
+    expect(screen.getByText(/Source: CCD Enrollment by Race/)).toBeInTheDocument();
+  });
+});
+
+describe('SchoolModal', () => {
+  const mockSchool: School = {
+    ncessch: '123456789',
+    school_name: 'Test High School',
+    lea_name: 'Test District',
+    city_location: 'Test City',
+    state_location: 'CA',
+    zip_location: '90210',
+    latitude: 34.0,
+    longitude: -118.0,
+    school_level: 3,
+    school_type: 1,
+    charter: 1,
+    magnet: 0,
+    enrollment: 1500,
+    teachers_fte: 75,
+    free_lunch: 300,
+    reduced_price_lunch: 150,
+    free_or_reduced_price_lunch: 450,
+    lowest_grade_offered: 9,
+    highest_grade_offered: 12,
+  };
+
+  const renderWithQuery = (ui: React.ReactElement) => {
+    const queryClient = createTestQueryClient();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
+  };
+
+  it('should render school details', () => {
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={() => {}} />);
+    
+    expect(screen.getByText('Test High School')).toBeInTheDocument();
+    expect(screen.getByText(/Test City/)).toBeInTheDocument();
+    expect(screen.getByText('1,500')).toBeInTheDocument();
+  });
+
+  it('should show charter tag', () => {
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={() => {}} />);
+    
+    expect(screen.getByText('Charter')).toBeInTheDocument();
+  });
+
+  it('should call onClose when clicking X', () => {
+    const onClose = vi.fn();
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={onClose} />);
+    
+    fireEvent.click(screen.getByLabelText('Close'));
+    
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should call onClose when pressing Escape', () => {
+    const onClose = vi.fn();
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={onClose} />);
+    
+    fireEvent.keyDown(document, { key: 'Escape' });
+    
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should show grade range', () => {
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={() => {}} />);
+    
+    expect(screen.getByText('9 - 12')).toBeInTheDocument();
+  });
+
+  it('should show FRL percentage', () => {
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={() => {}} />);
+    
+    // 450/1500 = 30%
+    expect(screen.getByText('30%')).toBeInTheDocument();
+  });
+
+  it('should show Niche link', () => {
+    renderWithQuery(<SchoolModal school={mockSchool} onClose={() => {}} />);
+    
+    expect(screen.getByText('View on Niche ↗')).toBeInTheDocument();
+  });
+
+  it('should close when clicking overlay', () => {
+    const onClose = vi.fn();
+    const { container } = renderWithQuery(<SchoolModal school={mockSchool} onClose={onClose} />);
+    
+    const overlay = container.querySelector('.fixed.inset-0');
+    if (overlay) {
+      fireEvent.click(overlay);
+      expect(onClose).toHaveBeenCalled();
+    }
+  });
+});
+
+describe('SchoolCard onClick', () => {
+  const mockSchool: School = {
+    ncessch: '123456',
+    school_name: 'Clickable School',
+    lea_name: 'Test District',
+    city_location: 'Test City',
+    state_location: 'CA',
+    zip_location: '90210',
+    latitude: 34.0,
+    longitude: -118.0,
+    school_level: 1,
+    school_type: 1,
+    charter: 0,
+    magnet: 0,
+    enrollment: 500,
+    teachers_fte: 25,
+    free_lunch: 100,
+    reduced_price_lunch: 50,
+    free_or_reduced_price_lunch: 150,
+    lowest_grade_offered: 0,
+    highest_grade_offered: 5,
+  };
+
+  it('should call onClick when provided', () => {
+    const onClick = vi.fn();
+    render(<SchoolCard school={mockSchool} onClick={onClick} />);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalled();
+  });
+});
+
+describe('SchoolCard keyboard', () => {
+  const mockSchool: School = {
+    ncessch: '123456',
+    school_name: 'Keyboard School',
+    lea_name: 'Test District',
+    city_location: 'Test City',
+    state_location: 'CA',
+    zip_location: '90210',
+    latitude: 34.0,
+    longitude: -118.0,
+    school_level: 1,
+    school_type: 1,
+    charter: 0,
+    magnet: 0,
+    enrollment: 500,
+    teachers_fte: 25,
+    free_lunch: 100,
+    reduced_price_lunch: 50,
+    free_or_reduced_price_lunch: 150,
+    lowest_grade_offered: 0,
+    highest_grade_offered: 5,
+  };
+
+  it('should call onClick on Enter key', () => {
+    const onClick = vi.fn();
+    render(<SchoolCard school={mockSchool} onClick={onClick} />);
+    
+    const card = screen.getByRole('button');
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(onClick).toHaveBeenCalled();
+  });
+
+  it('should call onClick on Space key', () => {
+    const onClick = vi.fn();
+    render(<SchoolCard school={mockSchool} onClick={onClick} />);
+    
+    const card = screen.getByRole('button');
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(onClick).toHaveBeenCalled();
+  });
+});

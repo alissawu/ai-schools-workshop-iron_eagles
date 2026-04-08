@@ -205,3 +205,138 @@ describe('API Functions', () => {
     });
   });
 });
+
+  describe('Niche API', () => {
+    beforeEach(() => {
+      vi.resetAllMocks();
+    });
+
+    describe('fetchNicheDistrict', () => {
+      it('should return null when server is not available', async () => {
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+        
+        const { fetchNicheDistrict } = await import('../api');
+        const result = await fetchNicheDistrict('Test District', 'CA', '123');
+        
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('fetchNicheSchool', () => {
+      it('should return null when server is not available', async () => {
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+        
+        const { fetchNicheSchool } = await import('../api');
+        const result = await fetchNicheSchool('Test School', 'Test City', 'CA', '123456');
+        
+        expect(result).toBeNull();
+      });
+    });
+  });
+
+  describe('Niche API success cases', () => {
+    it('fetchNicheDistrict should return data when server responds', async () => {
+      const mockData = {
+        overall_grade: 'A',
+        grades: { academics: 'A+' },
+        niche_url: 'https://niche.com/test',
+      };
+
+      // Mock health check success
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ status: 'ok' }) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockData) });
+      
+      // Need to reimport to reset the cached nicheServerAvailable
+      vi.resetModules();
+      const { fetchNicheDistrict } = await import('../api');
+      const result = await fetchNicheDistrict('Test District', 'CA', '123');
+      
+      expect(result).toEqual(mockData);
+    });
+
+    it('fetchNicheSchool should return data when server responds', async () => {
+      const mockData = {
+        overall_grade: 'B+',
+        grades: { teachers: 'A' },
+        niche_url: 'https://niche.com/school',
+      };
+
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ status: 'ok' }) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockData) });
+      
+      vi.resetModules();
+      const { fetchNicheSchool } = await import('../api');
+      const result = await fetchNicheSchool('Test School', 'Test City', 'CA', '123456');
+      
+      expect(result).toEqual(mockData);
+    });
+
+    it('fetchNicheDistrict should return null on 404', async () => {
+      globalThis.fetch = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ status: 'ok' }) })
+        .mockResolvedValueOnce({ ok: false, status: 404 });
+      
+      vi.resetModules();
+      const { fetchNicheDistrict } = await import('../api');
+      const result = await fetchNicheDistrict('Unknown District', 'XX');
+      
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('fetchDemographics', () => {
+    it('should fetch and process demographics data', async () => {
+      const mockData = {
+        results: [
+          { race: 1, sex: 99, enrollment: 500, leaid: '123', year: 2022, fips: 6, grade: 99 },
+          { race: 3, sex: 99, enrollment: 300, leaid: '123', year: 2022, fips: 6, grade: 99 },
+          { race: 99, sex: 99, enrollment: 800, leaid: '123', year: 2022, fips: 6, grade: 99 }, // Total, should be excluded
+        ],
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve(mockData),
+      });
+
+      const { fetchDemographics } = await import('../api');
+      const result = await fetchDemographics('123');
+
+      expect(result).not.toBeNull();
+      expect(result!.length).toBe(2);
+      expect(result![0].label).toBe('White');
+      expect(result![0].percent).toBeCloseTo(62.5, 1);
+    });
+
+    it('should return null when no data', async () => {
+      const mockData = { results: [] };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve(mockData),
+      });
+
+      const { fetchDemographics } = await import('../api');
+      const result = await fetchDemographics('123');
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle unknown race codes', async () => {
+      const mockData = {
+        results: [
+          { race: 999, sex: 99, enrollment: 100, leaid: '123', year: 2022, fips: 6, grade: 99 },
+        ],
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve(mockData),
+      });
+
+      const { fetchDemographics } = await import('../api');
+      const result = await fetchDemographics('123');
+
+      expect(result).not.toBeNull();
+      expect(result![0].label).toBe('Race 999');
+    });
+  });

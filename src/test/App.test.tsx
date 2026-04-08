@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '../App';
+import { DistrictList } from '../components/DistrictList';
 import * as api from '../api';
 
 // Mock the api module
@@ -287,6 +288,38 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('Back to districts')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('DistrictList edge cases', () => {
+  it('should show empty state when no districts', async () => {
+    vi.mocked(api.fetchDistricts).mockResolvedValue([]);
+
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DistrictList stateFips="6" searchQuery="" onSelectDistrict={() => {}} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/No Districts Found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show error state on fetch failure', async () => {
+    vi.mocked(api.fetchDistricts).mockRejectedValue(new Error('Network error'));
+
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DistrictList stateFips="6" searchQuery="" onSelectDistrict={() => {}} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Error Loading Data/)).toBeInTheDocument();
     });
   });
 });
