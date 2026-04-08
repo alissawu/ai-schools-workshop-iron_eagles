@@ -292,3 +292,117 @@ export function getNicheSchoolUrl(schoolName: string, city: string, stateAbbr: s
     .replace(/^-|-$/g, '');
   return `https://www.niche.com/k12/${slug}/`;
 }
+
+// ---------------------------------------------------------------------------
+// Niche companion server integration
+// ---------------------------------------------------------------------------
+
+const NICHE_SERVER = 'http://localhost:8080';
+
+export interface NicheGrades {
+  overall_grade: string | null;
+  grades: Record<string, string>;
+}
+
+export interface NicheReviews {
+  average: number;
+  count: number;
+}
+
+export interface NicheRanking {
+  display: string;
+  ordinal?: number;
+  total?: number;
+}
+
+export interface NicheDistrictData {
+  overall_grade: string | null;
+  grades: Record<string, string>;
+  enrollment?: number;
+  student_teacher_ratio?: number;
+  graduation_rate?: number;
+  math_proficiency?: number;
+  reading_proficiency?: number;
+  reviews?: NicheReviews;
+  rankings?: NicheRanking[];
+  schools?: NicheSchoolSummary[];
+  niche_url: string;
+  nces_id?: string;
+}
+
+export interface NicheSchoolSummary {
+  name: string;
+  ncessch?: string;
+  overall_grade?: string;
+  enrollment?: number;
+  student_teacher_ratio?: number;
+  reviews?: NicheReviews;
+}
+
+export interface NicheSchoolData {
+  overall_grade: string | null;
+  grades: Record<string, string>;
+  enrollment?: number;
+  student_teacher_ratio?: number;
+  graduation_rate?: number;
+  reviews?: NicheReviews;
+  rankings?: NicheRanking[];
+  niche_url: string;
+  nces_id?: string;
+}
+
+let nicheServerAvailable: boolean | null = null;
+
+async function checkNicheServer(): Promise<boolean> {
+  if (nicheServerAvailable !== null) return nicheServerAvailable;
+  try {
+    const res = await fetch(`${NICHE_SERVER}/health`, { signal: AbortSignal.timeout(2000) });
+    nicheServerAvailable = res.ok;
+  } catch {
+    nicheServerAvailable = false;
+  }
+  return nicheServerAvailable;
+}
+
+export async function fetchNicheDistrict(
+  name: string,
+  state: string,
+  leaid?: string
+): Promise<NicheDistrictData | null> {
+  if (!(await checkNicheServer())) return null;
+  
+  const params = new URLSearchParams({ name, state });
+  if (leaid) params.set('leaid', leaid);
+  
+  try {
+    const res = await fetch(`${NICHE_SERVER}/niche/district?${params}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchNicheSchool(
+  name: string,
+  city: string,
+  state: string,
+  ncessch?: string
+): Promise<NicheSchoolData | null> {
+  if (!(await checkNicheServer())) return null;
+  
+  const params = new URLSearchParams({ name, city, state });
+  if (ncessch) params.set('ncessch', ncessch);
+  
+  try {
+    const res = await fetch(`${NICHE_SERVER}/niche/school?${params}`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

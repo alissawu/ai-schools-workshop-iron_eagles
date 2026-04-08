@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { School } from '../api';
 import {
   calculateStudentTeacherRatio,
@@ -6,7 +7,9 @@ import {
   getSchoolLevelLabel,
   getGradeLabel,
   getNicheSchoolUrl,
+  fetchNicheSchool,
 } from '../api';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface SchoolModalProps {
   school: School;
@@ -23,6 +26,13 @@ export function SchoolModal({ school, onClose }: SchoolModalProps) {
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
+
+  const { data: nicheData, isLoading: nicheLoading } = useQuery({
+    queryKey: ['niche-school', school.ncessch],
+    queryFn: () => fetchNicheSchool(school.school_name, school.city_location, school.state_location, school.ncessch),
+    staleTime: 1000 * 60 * 60,
+    retry: false,
+  });
 
   const ratio = calculateStudentTeacherRatio(school.enrollment, school.teachers_fte);
   const frlPercent = calculateFRLPercent(school.free_or_reduced_price_lunch, school.enrollment);
@@ -100,6 +110,49 @@ export function SchoolModal({ school, onClose }: SchoolModalProps) {
             </div>
           </div>
 
+          {/* Niche Ratings */}
+          {nicheData ? (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-[var(--text-secondary)] uppercase tracking-wider">Niche Ratings</h3>
+              <div className="flex items-center gap-3">
+                {nicheData.overall_grade && (
+                  <div className={`text-2xl font-bold px-3 py-1 rounded ${
+                    nicheData.overall_grade.startsWith('A') ? 'bg-green-500/20 text-green-400' :
+                    nicheData.overall_grade.startsWith('B') ? 'bg-blue-500/20 text-blue-400' :
+                    nicheData.overall_grade.startsWith('C') ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {nicheData.overall_grade}
+                  </div>
+                )}
+                {nicheData.reviews && (
+                  <div className="text-sm text-[var(--text-secondary)]">
+                    <span className="text-yellow-400">★</span> {nicheData.reviews.average.toFixed(1)}/5 ({nicheData.reviews.count} reviews)
+                  </div>
+                )}
+              </div>
+              {Object.keys(nicheData.grades).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(nicheData.grades).slice(0, 6).map(([key, grade]) => (
+                    <span key={key} className={`text-xs px-2 py-1 rounded ${
+                      grade.startsWith('A') ? 'bg-green-500/20 text-green-400' :
+                      grade.startsWith('B') ? 'bg-blue-500/20 text-blue-400' :
+                      grade.startsWith('C') ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {key.replace(/_/g, ' ')}: {grade}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : nicheLoading ? (
+            <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <LoadingSpinner />
+              <span>Loading Niche ratings...</span>
+            </div>
+          ) : null}
+
           {/* Details */}
           <div className="space-y-3">
             <h3 className="font-semibold text-sm text-[var(--text-secondary)] uppercase tracking-wider">Details</h3>
@@ -134,12 +187,12 @@ export function SchoolModal({ school, onClose }: SchoolModalProps) {
           {/* Links */}
           <div className="flex flex-col gap-2 pt-3 border-t border-[var(--border)]">
             <a
-              href={getNicheSchoolUrl(school.school_name, school.city_location, school.state_location)}
+              href={nicheData?.niche_url || getNicheSchoolUrl(school.school_name, school.city_location, school.state_location)}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-center text-sm text-[var(--accent-blue)] hover:underline py-1"
             >
-              View ratings & reviews on Niche ↗
+              View on Niche ↗
             </a>
             <a
               href={ncesschUrl}
