@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
 import re
 import time
 from contextlib import asynccontextmanager
@@ -263,18 +264,30 @@ async def fetch_niche_page(url: str) -> dict | None:
     page = await ctx.new_page()
 
     try:
-        resp = await page.goto(url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+        # Navigate and wait for full load
+        resp = await page.goto(url, wait_until="networkidle", timeout=PAGE_TIMEOUT)
         if resp and resp.status == 404:
             return None
 
-        # Wait a moment for any challenge to resolve
-        await asyncio.sleep(1)
+        # Simulate human-like behavior
+        await asyncio.sleep(random.uniform(1.5, 2.5))
+        
+        # Move mouse randomly
+        await page.mouse.move(random.randint(100, 500), random.randint(100, 400))
+        await asyncio.sleep(random.uniform(0.3, 0.7))
+        
         html = await page.content()
 
         # Check for captcha / block page
         title = await page.title()
         if "denied" in title.lower() or "perimeterx" in html.lower() or "access to this page" in html.lower():
-            log.warning("PerimeterX block detected for %s", url)
+            log.warning("PerimeterX block detected for %s (title: %s)", url, title)
+            # Save screenshot for debugging
+            try:
+                await page.screenshot(path=f"/tmp/blocked_{int(time.time())}.png")
+                log.info("Screenshot saved to /tmp/")
+            except:
+                pass
             return None
 
         m = _PRELOADED_RE.search(html)
