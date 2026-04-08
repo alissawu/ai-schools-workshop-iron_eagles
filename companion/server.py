@@ -23,7 +23,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from patchright.async_api import async_playwright, Browser, Playwright
+from playwright.async_api import async_playwright, Browser, Playwright
 
 # ---------------------------------------------------------------------------
 # Config

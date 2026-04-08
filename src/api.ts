@@ -117,12 +117,53 @@ export async function fetchDistricts(fips: number): Promise<District[]> {
   return data;
 }
 
-// Schools still use the Urban Institute API (not bundled yet)
+// Schools are bundled as static JSON per state (from NCES CCD 2022-23)
+// The JSON is keyed by leaid, so we need to know the state fips
+let schoolsCache: Record<number, Record<string, School[]>> = {};
+
+// Reset cache (for testing)
+export function resetSchoolsCache() {
+  schoolsCache = {};
+}
+
 export async function fetchSchoolsInDistrict(leaid: string): Promise<School[]> {
-  const url = `${BASE_URL}/schools/ccd/directory/${YEAR}/?leaid=${leaid}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.results.filter((s: School) => s.enrollment && s.enrollment > 0);
+  // Extract fips from leaid (first 2 digits)
+  const fips = parseInt(leaid.substring(0, 2), 10);
+  
+  // Load schools for this state if not cached
+  if (!schoolsCache[fips]) {
+    const url = `${import.meta.env.BASE_URL}data/schools/${fips}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to load school data for FIPS ${fips}`);
+    schoolsCache[fips] = await res.json();
+  }
+  
+  const schools = schoolsCache[fips][leaid] || [];
+  
+  // Map to expected School interface
+  return schools
+    .filter((s: any) => s.enrollment && s.enrollment > 0)
+    .map((s: any) => ({
+      ncessch: s.ncessch,
+      school_name: s.school_name,
+      lea_name: '', // Not in bundled data
+      city_location: s.city,
+      state_location: s.state,
+      zip_location: s.zip,
+      latitude: s.lat,
+      longitude: s.lon,
+      school_level: 0, // TODO: map level string
+      school_type: s.charter ? 1 : 0,
+      charter: s.charter ? 1 : 0,
+      magnet: null,
+      enrollment: s.enrollment,
+      teachers_fte: s.teachers_fte,
+      free_lunch: null,
+      reduced_price_lunch: null,
+      free_or_reduced_price_lunch: null,
+      lowest_grade_offered: 0,
+      highest_grade_offered: 12,
+    }));
 }
 
 export async function fetchDistrictFinance(leaid: string): Promise<DistrictFinance | null> {

@@ -9,12 +9,14 @@ import {
   calculateFRLPercent,
   getNicheDistrictUrl,
   getNicheSchoolUrl,
+  resetSchoolsCache,
   STATES,
 } from '../api';
 
 describe('API Functions', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    resetSchoolsCache();
   });
 
   describe('STATES', () => {
@@ -68,25 +70,43 @@ describe('API Functions', () => {
   });
 
   describe('fetchSchoolsInDistrict', () => {
-    it('should fetch and filter schools', async () => {
+    it('should fetch and filter schools from bundled data', async () => {
+      // Bundled data is keyed by leaid
       const mockData = {
-        results: [
-          { ncessch: '1', school_name: 'School A', enrollment: 500 },
-          { ncessch: '2', school_name: 'School B', enrollment: 0 },
-          { ncessch: '3', school_name: 'School C', enrollment: 300 },
+        '1234567': [
+          { ncessch: '1', school_name: 'School A', city: 'Test', state: 'FL', enrollment: 500 },
+          { ncessch: '2', school_name: 'School B', city: 'Test', state: 'FL', enrollment: 0 },
+          { ncessch: '3', school_name: 'School C', city: 'Test', state: 'FL', enrollment: 300 },
         ],
       };
       
       globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve(mockData),
       });
 
-      const result = await fetchSchoolsInDistrict('123');
+      const result = await fetchSchoolsInDistrict('1234567');
       
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://educationdata.urban.org/api/v1/schools/ccd/directory/2022/?leaid=123'
+        expect.stringContaining('data/schools/12.json')
       );
+      // Should filter out schools with 0 enrollment
       expect(result).toHaveLength(2);
+      expect(result[0].school_name).toBe('School A');
+    });
+
+    it('should return empty array for unknown district', async () => {
+      const mockData = {
+        '9999999': [{ ncessch: '1', school_name: 'Other School', enrollment: 100 }],
+      };
+      
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockData),
+      });
+
+      const result = await fetchSchoolsInDistrict('1234567');
+      expect(result).toHaveLength(0);
     });
   });
 
