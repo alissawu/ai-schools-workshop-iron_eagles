@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     import patchright
     from patchright.async_api import async_playwright, Browser, Playwright
-    _BROWSER_LIB = f"patchright {patchright.__version__}"
+    _BROWSER_LIB = "patchright"
 except ImportError:
     # Fallback to regular playwright (will likely get blocked)
     from playwright.async_api import async_playwright, Browser, Playwright
