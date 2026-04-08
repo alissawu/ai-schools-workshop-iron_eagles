@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI):
     global _pw, _browser
     _pw = await async_playwright().start()
     _browser = await _pw.chromium.launch(
-        headless=True,
+        headless=False,  # Try headed mode - PerimeterX may detect headless
         args=[
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
