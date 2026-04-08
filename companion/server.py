@@ -278,21 +278,21 @@ async def fetch_niche_page(url: str) -> dict | None:
         
         html = await page.content()
 
-        # Check for captcha / block page
+        # Check for actual block (title-based, not HTML content - perimeterx scripts are on every page)
         title = await page.title()
-        if "denied" in title.lower() or "perimeterx" in html.lower() or "access to this page" in html.lower():
+        if "denied" in title.lower() or "access" in title.lower() and "blocked" in title.lower():
             log.warning("PerimeterX block detected for %s (title: %s)", url, title)
-            # Save screenshot for debugging
             try:
                 await page.screenshot(path=f"/tmp/blocked_{int(time.time())}.png")
                 log.info("Screenshot saved to /tmp/")
             except:
                 pass
             return None
-
+        
+        # Try to find the preloaded state
         m = _PRELOADED_RE.search(html)
         if not m:
-            log.warning("No __PRELOADED_STATE__ found in %s", url)
+            log.warning("No __PRELOADED_STATE__ found in %s (might be blocked or wrong URL)", url)
             return None
 
         return json.loads(m.group(1))
