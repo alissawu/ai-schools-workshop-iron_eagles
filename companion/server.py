@@ -273,10 +273,13 @@ def extract_preloaded_state(html: str) -> dict | None:
             depth -= 1
             if depth == 0:
                 # Found the matching brace
+                json_str = html[start:i+1]
                 try:
-                    return json.loads(html[start:i+1])
+                    return json.loads(json_str)
                 except json.JSONDecodeError as e:
                     log.error("JSON parse error: %s", e)
+                    log.error("JSON preview (first 600 chars): %s", json_str[:600])
+                    log.error("JSON around error (char 480-520): %s", json_str[480:520] if len(json_str) > 520 else json_str)
                     return None
     
     return None
