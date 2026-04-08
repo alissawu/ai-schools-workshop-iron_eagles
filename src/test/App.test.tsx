@@ -75,7 +75,7 @@ describe('App', () => {
   it('should render the footer', () => {
     renderApp();
     
-    expect(screen.getByText(/Urban Institute Education Data Portal/)).toBeInTheDocument();
+    expect(screen.getByText(/NCES Common Core of Data/)).toBeInTheDocument();
   });
 
   it('should show loading state when fetching districts', async () => {

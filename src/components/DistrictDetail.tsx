@@ -6,6 +6,7 @@ import {
   fetchDemographics,
   calculateStudentTeacherRatio,
   getSchoolLevelLabel,
+  getNicheDistrictUrl,
 } from '../api';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SchoolCard } from './SchoolCard';
@@ -65,6 +66,16 @@ export function DistrictDetail({ district, onBack }: DistrictDetailProps) {
           {district.county_name && ` · ${district.county_name}`}
         </p>
       </div>
+
+      {/* Niche Link */}
+      <a
+        href={getNicheDistrictUrl(district.lea_name, district.state_mailing)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 text-sm text-[var(--accent-blue)] hover:underline mb-4"
+      >
+        View ratings & reviews on Niche ↗
+      </a>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

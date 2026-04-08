@@ -39,6 +39,7 @@ export interface District {
   lowest_grade_offered: number;
   highest_grade_offered: number;
   county_name: string;
+  phone?: string;
 }
 
 export interface DistrictFinance {
@@ -107,17 +108,16 @@ export const STATES: Record<string, { name: string; fips: number }> = {
   WY: { name: 'Wyoming', fips: 56 },
 };
 
+// District data is bundled as static JSON per state (from NCES CCD 2022-23)
 export async function fetchDistricts(fips: number): Promise<District[]> {
-  const url = `${BASE_URL}/school-districts/ccd/directory/${YEAR}/?fips=${fips}`;
+  const url = `${import.meta.env.BASE_URL}data/districts/${fips}.json`;
   const res = await fetch(url);
-  const data = await res.json();
-  // Filter to only regular school districts (agency_type 1) with enrollment > 0
-  // agency_type 1 = regular districts, 2 = component districts (e.g. NYC Geographic Districts)
-  return data.results.filter((d: District) => 
-    (d.agency_type === 1 || d.agency_type === 2) && d.enrollment && d.enrollment > 0
-  );
+  if (!res.ok) throw new Error(`Failed to load district data for FIPS ${fips}`);
+  const data: District[] = await res.json();
+  return data;
 }
 
+// Schools still use the Urban Institute API (not bundled yet)
 export async function fetchSchoolsInDistrict(leaid: string): Promise<School[]> {
   const url = `${BASE_URL}/schools/ccd/directory/${YEAR}/?leaid=${leaid}`;
   const res = await fetch(url);
@@ -227,4 +227,27 @@ export async function fetchDemographics(leaid: string): Promise<DemographicBreak
       color: RACE_COLORS[r.race] || '#94a3b8',
     }))
     .sort((a, b) => b.enrollment - a.enrollment);
+}
+
+// Niche integration - generates a Niche URL for a district
+export function getNicheDistrictUrl(districtName: string, stateAbbr: string): string {
+  const slug = districtName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const state = stateAbbr.toLowerCase();
+  return `https://www.niche.com/k12/d/${slug}-${state}/`;
+}
+
+// Niche URL for a school
+export function getNicheSchoolUrl(schoolName: string, city: string, stateAbbr: string): string {
+  const slug = `${schoolName} ${city} ${stateAbbr}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `https://www.niche.com/k12/${slug}/`;
 }

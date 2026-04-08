@@ -123,16 +123,34 @@ function AppContent() {
       <footer className="border-t border-[var(--border)] mt-auto">
         <div className="max-w-7xl mx-auto px-6 py-6 text-center text-sm text-[var(--text-secondary)]">
           <p>
-            Data sourced from the{' '}
+            District data from{' '}
+            <a
+              href="https://nces.ed.gov/ccd/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent-blue)] hover:underline"
+            >
+              NCES Common Core of Data
+            </a>
+            {' '}(2022-23). School data from the{' '}
             <a
               href="https://educationdata.urban.org"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[var(--accent-blue)] hover:underline"
             >
-              Urban Institute Education Data Portal
+              Urban Institute
             </a>
-            . School year 2021-2022.
+            . Ratings from{' '}
+            <a
+              href="https://www.niche.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent-blue)] hover:underline"
+            >
+              Niche
+            </a>
+            .
           </p>
         </div>
       </footer>

@@ -7,6 +7,8 @@ import {
   getGradeLabel,
   calculateStudentTeacherRatio,
   calculateFRLPercent,
+  getNicheDistrictUrl,
+  getNicheSchoolUrl,
   STATES,
 } from '../api';
 
@@ -36,26 +38,32 @@ describe('API Functions', () => {
   });
 
   describe('fetchDistricts', () => {
-    it('should fetch and filter districts', async () => {
-      const mockData = {
-        results: [
-          { leaid: '1', lea_name: 'Test District', agency_type: 1, enrollment: 1000 },
-          { leaid: '2', lea_name: 'Charter', agency_type: 7, enrollment: 500 },
-          { leaid: '3', lea_name: 'Empty', agency_type: 1, enrollment: 0 },
-        ],
-      };
+    it('should fetch bundled district data by FIPS code', async () => {
+      const mockData = [
+        { leaid: '1', lea_name: 'Test District', agency_type: 1, enrollment: 1000 },
+        { leaid: '2', lea_name: 'Another District', agency_type: 1, enrollment: 500 },
+      ];
       
       globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve(mockData),
       });
 
       const result = await fetchDistricts(6);
       
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://educationdata.urban.org/api/v1/school-districts/ccd/directory/2022/?fips=6'
+        expect.stringContaining('data/districts/6.json')
       );
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0].leaid).toBe('1');
+    });
+
+    it('should throw on failed fetch', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+      });
+
+      await expect(fetchDistricts(6)).rejects.toThrow('Failed to load district data');
     });
   });
 
@@ -155,6 +163,25 @@ describe('API Functions', () => {
       expect(calculateFRLPercent(null, 100)).toBeNull();
       expect(calculateFRLPercent(50, null)).toBeNull();
       expect(calculateFRLPercent(50, 0)).toBeNull();
+    });
+  });
+
+  describe('getNicheDistrictUrl', () => {
+    it('should generate correct Niche district URLs', () => {
+      const url = getNicheDistrictUrl('Bridgewater-Raritan Regional School District', 'NJ');
+      expect(url).toBe('https://www.niche.com/k12/d/bridgewater-raritan-regional-school-district-nj/');
+    });
+
+    it('should handle special characters', () => {
+      const url = getNicheDistrictUrl("St. Mary's County Public Schools", 'MD');
+      expect(url).toBe('https://www.niche.com/k12/d/st-marys-county-public-schools-md/');
+    });
+  });
+
+  describe('getNicheSchoolUrl', () => {
+    it('should generate correct Niche school URLs', () => {
+      const url = getNicheSchoolUrl('Lincoln Elementary School', 'Springfield', 'IL');
+      expect(url).toBe('https://www.niche.com/k12/lincoln-elementary-school-springfield-il/');
     });
   });
 });
