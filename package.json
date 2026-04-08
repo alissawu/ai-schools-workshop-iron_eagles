@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "companion": "cd companion && python server.py",
+    "companion": "cd companion && python3 server.py",
     "start": "concurrently --names \"frontend,niche\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run companion\""
   },
   "dependencies": {
