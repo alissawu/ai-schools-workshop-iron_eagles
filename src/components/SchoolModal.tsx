@@ -5,6 +5,7 @@ import {
   calculateFRLPercent,
   getSchoolLevelLabel,
   getGradeLabel,
+  getNicheSchoolUrl,
 } from '../api';
 
 interface SchoolModalProps {
@@ -130,15 +131,25 @@ export function SchoolModal({ school, onClose }: SchoolModalProps) {
             </div>
           </div>
 
-          {/* Link */}
-          <a
-            href={ncesschUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-center text-sm text-[var(--accent-blue)] hover:underline py-3 border-t border-[var(--border)]"
-          >
-            View on Education Data Explorer ↗
-          </a>
+          {/* Links */}
+          <div className="flex flex-col gap-2 pt-3 border-t border-[var(--border)]">
+            <a
+              href={getNicheSchoolUrl(school.school_name, school.city_location, school.state_location)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm text-[var(--accent-blue)] hover:underline py-1"
+            >
+              View ratings & reviews on Niche ↗
+            </a>
+            <a
+              href={ncesschUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm text-[var(--text-secondary)] hover:underline py-1"
+            >
+              View on Education Data Explorer ↗
+            </a>
+          </div>
         </div>
       </div>
     </div>
