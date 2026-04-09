@@ -111,13 +111,23 @@ async def main():
                                 print(f"\n=== profile.content.blocks ({len(blocks)} items) ===")
                                 for i, block in enumerate(blocks[:10]):
                                     if isinstance(block, dict):
-                                        print(f"  block[{i}] keys: {list(block.keys())}")
-                                        if "template" in block:
-                                            print(f"    template: {block['template']}")
-                                        if "label" in block:
-                                            print(f"    label: {block['label']}")
-                                        if "value" in block:
-                                            print(f"    value: {block['value']}")
+                                        template = block.get("template", "")
+                                        print(f"  block[{i}] template: {template}")
+                                        
+                                        # Dig into ReportCard block
+                                        if "ReportCard" in template:
+                                            print(f"\n=== REPORT CARD BLOCK ===")
+                                            print(f"  block keys: {list(block.keys())}")
+                                            buckets = block.get("buckets", [])
+                                            print(f"  buckets count: {len(buckets)}")
+                                            for j, bucket in enumerate(buckets[:5]):
+                                                if isinstance(bucket, dict):
+                                                    print(f"\n  bucket[{j}] keys: {list(bucket.keys())}")
+                                                    contents = bucket.get("contents", [])
+                                                    print(f"  bucket[{j}] contents count: {len(contents)}")
+                                                    for k, item in enumerate(contents[:10]):
+                                                        if isinstance(item, dict):
+                                                            print(f"    item[{k}]: template={item.get('template')}, label={item.get('label')}, value={item.get('value')}")
                             
                             if "profileEntity" in content:
                                 pe = content["profileEntity"]
