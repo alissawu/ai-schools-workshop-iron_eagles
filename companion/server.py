@@ -535,8 +535,16 @@ def _to_number(val: Any) -> int | float | None:
 
 def build_response(state: dict, url: str) -> dict:
     """Build a clean response from a parsed __PRELOADED_STATE__."""
+    # Debug: log top-level keys
+    log.info("State top-level keys: %s", list(state.keys())[:20])
+    if "profile" in state:
+        log.info("profile keys: %s", list(state["profile"].keys())[:20] if isinstance(state.get("profile"), dict) else "not a dict")
+    
     blocks = _walk_blocks(state)
+    log.info("Found %d blocks", len(blocks))
+    
     overall, grades = _extract_grades(blocks)
+    log.info("Extracted overall=%s, grades=%s", overall, grades)
     facts = _extract_facts(blocks)
     reviews = _extract_reviews(state)
     rankings = _extract_rankings(blocks)
