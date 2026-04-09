@@ -106,15 +106,38 @@ async def main():
                                 print("\n=== profile.content.grades ===")
                                 print(json.dumps(content["grades"], indent=2))
                             
-                            if "entity" in content:
-                                print("\n=== profile.content.entity KEYS ===")
-                                print(list(content["entity"].keys())[:20])
-                                
-                                entity = content["entity"]
-                                for key in ["overallGrade", "grades", "grade", "rating"]:
-                                    if key in entity:
-                                        print(f"\n=== entity.{key} ===")
-                                        print(json.dumps(entity[key], indent=2)[:500])
+                            if "blocks" in content:
+                                blocks = content["blocks"]
+                                print(f"\n=== profile.content.blocks ({len(blocks)} items) ===")
+                                for i, block in enumerate(blocks[:10]):
+                                    if isinstance(block, dict):
+                                        print(f"  block[{i}] keys: {list(block.keys())}")
+                                        if "template" in block:
+                                            print(f"    template: {block['template']}")
+                                        if "label" in block:
+                                            print(f"    label: {block['label']}")
+                                        if "value" in block:
+                                            print(f"    value: {block['value']}")
+                            
+                            if "profileEntity" in content:
+                                pe = content["profileEntity"]
+                                print("\n=== profile.content.profileEntity KEYS ===")
+                                print(list(pe.keys())[:20] if isinstance(pe, dict) else pe)
+                                if isinstance(pe, dict):
+                                    for key in ["overallGrade", "grades", "grade", "rating", "reportCard"]:
+                                        if key in pe:
+                                            print(f"\n=== profileEntity.{key} ===")
+                                            print(json.dumps(pe[key], indent=2)[:1000])
+                            
+                            if "entity_data" in content:
+                                ed = content["entity_data"]
+                                print("\n=== profile.content.entity_data KEYS ===")
+                                print(list(ed.keys())[:20] if isinstance(ed, dict) else ed)
+                                if isinstance(ed, dict):
+                                    for key in ["overallGrade", "grades", "grade", "rating", "reportCard"]:
+                                        if key in ed:
+                                            print(f"\n=== entity_data.{key} ===")
+                                            print(json.dumps(ed[key], indent=2)[:1000])
                     
                 except json.JSONDecodeError as e:
                     print(f"JSON parse error: {e}")
