@@ -172,15 +172,16 @@ def district_slug_variants(name: str, state: str) -> list[str]:
 
     base_no_num = base[: -len(trailing_num)] if trailing_num else base
 
+    # Try base name FIRST (exact NCES name)
+    variants.append(base)
+    
+    # Then try suffix-based replacements as fallbacks
     for suffix, replacements_list in suffix_swaps:
         if base_no_num.endswith(suffix):
             prefix = base_no_num[: -len(suffix)]
             for rep in replacements_list:
-                variants.append(prefix + rep)  # try replacements first
+                variants.append(prefix + rep)
             break
-    
-    # Then try base name as fallback
-    variants.append(base)
 
     # Try stripping trailing qualifiers like "district 299"
     stripped = re.sub(r"-(?:district|dist)-?\d+$", "", base)
