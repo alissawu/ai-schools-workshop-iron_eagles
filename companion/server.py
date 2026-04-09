@@ -535,13 +535,30 @@ def _to_number(val: Any) -> int | float | None:
 
 def build_response(state: dict, url: str) -> dict:
     """Build a clean response from a parsed __PRELOADED_STATE__."""
-    # Debug: log top-level keys
+    # Debug: log structure
     log.info("State top-level keys: %s", list(state.keys())[:20])
     if "profile" in state:
-        log.info("profile keys: %s", list(state["profile"].keys())[:20] if isinstance(state.get("profile"), dict) else "not a dict")
+        profile = state["profile"]
+        log.info("profile keys: %s", list(profile.keys())[:20] if isinstance(profile, dict) else "not a dict")
+        if isinstance(profile, dict) and "content" in profile:
+            content = profile["content"]
+            log.info("content keys: %s", list(content.keys())[:20] if isinstance(content, dict) else "not a dict")
+            if isinstance(content, dict):
+                # Log first block if exists
+                blocks = content.get("blocks", [])
+                log.info("blocks count: %d", len(blocks))
+                if blocks:
+                    log.info("first block keys: %s", list(blocks[0].keys()) if isinstance(blocks[0], dict) else blocks[0])
+                # Check for grades in other locations
+                entity = content.get("entity", {})
+                log.info("entity keys: %s", list(entity.keys())[:20] if isinstance(entity, dict) else "not a dict")
+                if "grades" in entity:
+                    log.info("entity.grades: %s", entity["grades"])
+                if "overallGrade" in entity:
+                    log.info("entity.overallGrade: %s", entity["overallGrade"])
     
     blocks = _walk_blocks(state)
-    log.info("Found %d blocks", len(blocks))
+    log.info("Found %d blocks after walk", len(blocks))
     
     overall, grades = _extract_grades(blocks)
     log.info("Extracted overall=%s, grades=%s", overall, grades)
