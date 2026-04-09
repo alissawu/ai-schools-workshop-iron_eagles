@@ -537,31 +537,46 @@ def build_response(state: dict, url: str) -> dict:
     """Build a clean response from a parsed __PRELOADED_STATE__."""
     # Debug: log structure
     log.info("State top-level keys: %s", list(state.keys())[:20])
+    
+    overall = None
+    grades: dict[str, str] = {}
+    
     if "profile" in state:
         profile = state["profile"]
-        log.info("profile keys: %s", list(profile.keys())[:20] if isinstance(profile, dict) else "not a dict")
         if isinstance(profile, dict) and "content" in profile:
             content = profile["content"]
-            log.info("content keys: %s", list(content.keys())[:20] if isinstance(content, dict) else "not a dict")
             if isinstance(content, dict):
-                # Log first block if exists
-                blocks = content.get("blocks", [])
-                log.info("blocks count: %d", len(blocks))
-                if blocks:
-                    log.info("first block keys: %s", list(blocks[0].keys()) if isinstance(blocks[0], dict) else blocks[0])
-                # Check for grades in other locations
+                # Check content.grades directly (this is where Niche stores them)
+                content_grades = content.get("grades", [])
+                log.info("content.grades count: %d", len(content_grades))
+                
+                for g in content_grades:
+                    label = (g.get("label") or "").strip()
+                    val = g.get("value")
+                    if val is not None:
+                        letter = numeric_to_letter(float(val))
+                        if not label or label.lower() in ("overall niche grade", "overall grade"):
+                            overall = letter
+                            log.info("Found overall grade: %s", letter)
+                        else:
+                            key = slugify(label).replace("-", "_")
+                            grades[key] = letter
+                
+                # Also check entity for grades
                 entity = content.get("entity", {})
-                log.info("entity keys: %s", list(entity.keys())[:20] if isinstance(entity, dict) else "not a dict")
-                if "grades" in entity:
-                    log.info("entity.grades: %s", entity["grades"])
-                if "overallGrade" in entity:
-                    log.info("entity.overallGrade: %s", entity["overallGrade"])
+                if isinstance(entity, dict):
+                    log.info("entity keys: %s", list(entity.keys())[:15])
+                    if "overallGrade" in entity and not overall:
+                        og = entity["overallGrade"]
+                        if isinstance(og, (int, float)):
+                            overall = numeric_to_letter(float(og))
+                        elif isinstance(og, str):
+                            overall = og
     
+    log.info("Final overall=%s, grades=%s", overall, grades)
+    
+    # Get other data from blocks
     blocks = _walk_blocks(state)
-    log.info("Found %d blocks after walk", len(blocks))
-    
-    overall, grades = _extract_grades(blocks)
-    log.info("Extracted overall=%s, grades=%s", overall, grades)
     facts = _extract_facts(blocks)
     reviews = _extract_reviews(state)
     rankings = _extract_rankings(blocks)
