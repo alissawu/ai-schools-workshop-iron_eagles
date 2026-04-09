@@ -69,7 +69,6 @@ async def lifespan(app: FastAPI):
         args=[
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
-            "--window-position=-2000,-2000",  # Start off-screen
         ],
     )
     log.info(f"Browser launched using {_BROWSER_LIB}")
