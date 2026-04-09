@@ -65,10 +65,11 @@ async def lifespan(app: FastAPI):
     global _pw, _browser
     _pw = await async_playwright().start()
     _browser = await _pw.chromium.launch(
-        headless=True,
+        headless=False,
         args=[
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
+            "--window-position=-2000,-2000",  # Start off-screen
         ],
     )
     log.info(f"Browser launched using {_BROWSER_LIB}")
