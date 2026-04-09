@@ -355,17 +355,26 @@ async def fetch_niche_page(url: str) -> dict | None:
 
 def _walk_blocks(state: dict) -> list[dict]:
     """Pull all content blocks from the preloaded state."""
-    blocks = []
+    items = []
     try:
         content = state.get("profile", {}).get("content", {})
         for block in content.get("blocks", []):
-            blocks.append(block)
-            for bucket in block.get("buckets", []):
-                for item in bucket.get("contents", []):
-                    blocks.append(item)
+            items.append(block)
+            # buckets can be a dict or list
+            buckets = block.get("buckets", {})
+            bucket_list = buckets.values() if isinstance(buckets, dict) else buckets
+            for bucket in bucket_list:
+                if not isinstance(bucket, dict):
+                    continue
+                # contents can also be a dict or list
+                contents = bucket.get("contents", [])
+                content_list = contents.values() if isinstance(contents, dict) else contents
+                for item in content_list:
+                    if isinstance(item, dict):
+                        items.append(item)
     except (AttributeError, TypeError):
         pass
-    return blocks
+    return items
 
 
 def _extract_grades(blocks: list[dict]) -> tuple[str | None, dict[str, str]]:
@@ -374,7 +383,8 @@ def _extract_grades(blocks: list[dict]) -> tuple[str | None, dict[str, str]]:
     grades: dict[str, str] = {}
 
     for b in blocks:
-        if b.get("template") != "Grade":
+        # Check for type: "Grade" (Niche uses this) or template: "Grade"
+        if b.get("type") != "Grade" and b.get("template") not in ("Grade", "OverallGrade"):
             continue
         label = (b.get("label") or "").strip()
         val = b.get("value")
@@ -535,48 +545,11 @@ def _to_number(val: Any) -> int | float | None:
 
 def build_response(state: dict, url: str) -> dict:
     """Build a clean response from a parsed __PRELOADED_STATE__."""
-    # Debug: log structure
-    log.info("State top-level keys: %s", list(state.keys())[:20])
-    
-    overall = None
-    grades: dict[str, str] = {}
-    
-    if "profile" in state:
-        profile = state["profile"]
-        if isinstance(profile, dict) and "content" in profile:
-            content = profile["content"]
-            if isinstance(content, dict):
-                # Check content.grades directly (this is where Niche stores them)
-                content_grades = content.get("grades", [])
-                log.info("content.grades count: %d", len(content_grades))
-                
-                for g in content_grades:
-                    label = (g.get("label") or "").strip()
-                    val = g.get("value")
-                    if val is not None:
-                        letter = numeric_to_letter(float(val))
-                        if not label or label.lower() in ("overall niche grade", "overall grade"):
-                            overall = letter
-                            log.info("Found overall grade: %s", letter)
-                        else:
-                            key = slugify(label).replace("-", "_")
-                            grades[key] = letter
-                
-                # Also check entity for grades
-                entity = content.get("entity", {})
-                if isinstance(entity, dict):
-                    log.info("entity keys: %s", list(entity.keys())[:15])
-                    if "overallGrade" in entity and not overall:
-                        og = entity["overallGrade"]
-                        if isinstance(og, (int, float)):
-                            overall = numeric_to_letter(float(og))
-                        elif isinstance(og, str):
-                            overall = og
-    
-    log.info("Final overall=%s, grades=%s", overall, grades)
-    
-    # Get other data from blocks
     blocks = _walk_blocks(state)
+    log.info("Found %d items from blocks", len(blocks))
+    
+    overall, grades = _extract_grades(blocks)
+    log.info("Extracted overall=%s, grades=%s", overall, grades)
     facts = _extract_facts(blocks)
     reviews = _extract_reviews(state)
     rankings = _extract_rankings(blocks)

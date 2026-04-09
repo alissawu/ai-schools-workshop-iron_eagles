@@ -119,13 +119,17 @@ async def main():
                                             print(f"\n=== REPORT CARD BLOCK ===")
                                             print(f"  block keys: {list(block.keys())}")
                                             buckets = block.get("buckets", [])
-                                            print(f"  buckets count: {len(buckets)}")
-                                            for j, bucket in enumerate(buckets[:5]):
+                                            print(f"  buckets type: {type(buckets).__name__}, len/keys: {len(buckets) if isinstance(buckets, list) else list(buckets.keys()) if isinstance(buckets, dict) else 'n/a'}")
+                                            
+                                            # Handle both list and dict
+                                            bucket_items = buckets if isinstance(buckets, list) else buckets.values() if isinstance(buckets, dict) else []
+                                            for j, bucket in enumerate(list(bucket_items)[:5]):
                                                 if isinstance(bucket, dict):
                                                     print(f"\n  bucket[{j}] keys: {list(bucket.keys())}")
                                                     contents = bucket.get("contents", [])
-                                                    print(f"  bucket[{j}] contents count: {len(contents)}")
-                                                    for k, item in enumerate(contents[:10]):
+                                                    print(f"  bucket[{j}] contents count: {len(contents) if isinstance(contents, list) else 'not a list'}")
+                                                    content_items = contents if isinstance(contents, list) else contents.values() if isinstance(contents, dict) else []
+                                                    for k, item in enumerate(list(content_items)[:15]):
                                                         if isinstance(item, dict):
                                                             print(f"    item[{k}]: template={item.get('template')}, label={item.get('label')}, value={item.get('value')}")
                             
